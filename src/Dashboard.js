@@ -26,7 +26,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./components/firebase";
 import CloseIcon from "@mui/icons-material/Close";
-import { v4 as uuidv4 } from "uuid";
+import ScaleLoader from "react-spinners/ScaleLoader";
 
 const Dashboard = () => {
   const theme = createTheme({
@@ -53,19 +53,27 @@ const Dashboard = () => {
   const [snack, setSnack] = useState(false);
   const [snackMsg, setSnackMsg] = useState("");
 
+  const [spin, setSpin] = useState(true);
+  const hideSpin = () => {
+    setSpin(false);
+  };
+
   const handleChange = (event, value) => {
     setPage(value);
   };
 
   useEffect(() => {
-    const q = query(collection(db, "Notes"), orderBy("timeStamp", "desc"));
+    const q = query(
+      collection(db, "Notes"),
+      orderBy("pinned", "desc")
+      // orderBy("timeStamp", "desc")
+    );
     getDocs(q).then((querySnapshot) => {
       querySnapshot.forEach((doc) => {
         let result = doc.data();
-        // console.log(doc.id);
         result["id"] = doc.id;
-        // console.log(result);
         setNotes((prev) => [...prev, result]);
+        hideSpin();
       });
     });
   }, []);
@@ -83,9 +91,10 @@ const Dashboard = () => {
     newTitle: "",
     newTag: "",
     newNote: "",
+    pinned: false,
   });
 
-  const { newTitle, newTag, newNote } = values;
+  const { newTitle, newTag, newNote, pinned } = values;
 
   const onSubmit = async (e) => {
     if (newTitle === "") {
@@ -105,12 +114,13 @@ const Dashboard = () => {
         tag: newTag,
         note: newNote,
         timeStamp: serverTimestamp(),
-        id: uuidv4(),
+        pinned: pinned,
       });
       if (docRef) {
         setSnackMsg("Note Saved");
         handleClickSnack();
         setValues({ newTitle: "", newTag: "", newNote: "" });
+        refreshPage();
       }
     } catch (e) {
       setSnackMsg("Note not saved");
@@ -145,6 +155,10 @@ const Dashboard = () => {
       </IconButton>
     </React.Fragment>
   );
+
+  const refreshPage = () => {
+    window.location.reload(true);
+  };
 
   return (
     <>
@@ -247,6 +261,12 @@ const Dashboard = () => {
               columns={{ xs: 4, sm: 8, md: 12 }}
               justifyContent="center"
             >
+              <ScaleLoader
+                color={"black"}
+                loading={spin}
+                className="text-center"
+                size={150}
+              />
               {slicedNotes.map((note, index) => {
                 return (
                   <Grid xs={4} key={index}>
@@ -256,6 +276,7 @@ const Dashboard = () => {
                         tag={note.tag}
                         note={note.note}
                         id={note.id}
+                        pinned={note.pinned}
                       />
                     </Item>
                   </Grid>

@@ -14,8 +14,9 @@ import {
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import CloseIcon from "@mui/icons-material/Close";
+import PushPinIcon from "@mui/icons-material/PushPin";
 
-const Note = ({ title, tag, note, id }) => {
+const Note = ({ title, tag, note, id, pinned }) => {
   const theme = createTheme({
     typography: {
       fontFamily: ["Inter", "sans-serif"].join(","),
@@ -90,6 +91,7 @@ const Note = ({ title, tag, note, id }) => {
       .then(() => {
         setSnackMsg("Note Saved");
         handleClickSnack();
+        refreshPage();
       })
       .catch(() => {
         setSnackMsg("Note not saved");
@@ -121,6 +123,30 @@ const Note = ({ title, tag, note, id }) => {
     </React.Fragment>
   );
 
+  // const [pin, setPin] = useState(false);
+
+  const handlePin = async (e) => {
+    // setPin(!pin && !pinned);
+    e.preventDefault();
+    // Updating by creating a reference to the doc
+
+    const noteRef = doc(db, "Notes", id);
+    await updateDoc(noteRef, {
+      pinned: !pinned,
+    })
+      .then(() => {
+        refreshPage();
+      })
+      .catch(() => {
+        setSnackMsg("Cannot Pin");
+        handleClickSnack();
+      });
+  };
+
+  const refreshPage = () => {
+    window.location.reload(true);
+  };
+
   return (
     <>
       <ThemeProvider theme={theme}>
@@ -131,29 +157,43 @@ const Note = ({ title, tag, note, id }) => {
           message={snackMsg}
           action={action}
         />
-        <Button onClick={handleModal}>
-          <Box>
-            <Typography variant="h6" color="initial" pt={1} textAlign="center">
-              {title}
-            </Typography>
-            <Typography
-              variant="subtitle1"
-              color="initial"
-              textAlign="left"
-              px={2}
-            >
-              {tag}
-            </Typography>
-            <Typography
-              variant="body2"
-              color="initial"
-              textAlign={"justify"}
-              p={2}
-            >
-              {note}
-            </Typography>
-          </Box>
-        </Button>
+        <Stack
+          sx={{
+            alignItems: "flex-start",
+          }}
+        >
+          <Button onClick={handlePin}>
+            <PushPinIcon color={pinned ? "primary" : "disabled"} />
+          </Button>
+          <Button onClick={handleModal}>
+            <Box>
+              <Typography
+                variant="h6"
+                color="initial"
+                pt={1}
+                textAlign="center"
+              >
+                {title}
+              </Typography>
+              <Typography
+                variant="subtitle1"
+                color="initial"
+                textAlign="left"
+                px={2}
+              >
+                {tag}
+              </Typography>
+              <Typography
+                variant="body2"
+                color="initial"
+                textAlign={"justify"}
+                p={2}
+              >
+                {note}
+              </Typography>
+            </Box>
+          </Button>
+        </Stack>
         {/* Modal */}
         <Modal open={open} onClose={handleModal}>
           <Box sx={style}>
@@ -163,7 +203,6 @@ const Note = ({ title, tag, note, id }) => {
                 type={"text"}
                 variant="filled"
                 size="small"
-                // defaultValue={title}
                 value={oldTitle}
                 fullWidth
                 onChange={handleChangeOld("oldTitle")}
@@ -173,7 +212,6 @@ const Note = ({ title, tag, note, id }) => {
                 type={"text"}
                 variant="filled"
                 size="small"
-                // defaultValue={tag}
                 value={oldTag}
                 onChange={handleChangeOld("oldTag")}
                 fullWidth
@@ -184,7 +222,6 @@ const Note = ({ title, tag, note, id }) => {
                 variant="filled"
                 multiline
                 fullWidth
-                // defaultValue={note}
                 value={oldNote}
                 onChange={handleChangeOld("oldNote")}
               />
