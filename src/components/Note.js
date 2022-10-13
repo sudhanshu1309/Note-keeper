@@ -4,13 +4,18 @@ import {
   Box,
   Button,
   createTheme,
+  IconButton,
   Modal,
+  Snackbar,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { db } from "./firebase";
+import CloseIcon from "@mui/icons-material/Close";
 
-const Note = ({ title, tag, note }) => {
+const Note = ({ title, tag, note, id }) => {
   const theme = createTheme({
     typography: {
       fontFamily: ["Inter", "sans-serif"].join(","),
@@ -38,13 +43,94 @@ const Note = ({ title, tag, note }) => {
   };
 
   const [open, setOpen] = useState(false);
+
   const handleModal = () => {
+    if (!open) {
+      setValues({ oldTitle: title, oldTag: tag, oldNote: note });
+    }
     setOpen(!open);
   };
+
+  const [values, setValues] = useState({
+    oldTitle: "",
+    oldTag: "",
+    oldNote: "",
+  });
+  const handleChangeOld = (name) => (event) => {
+    setValues({ ...values, [name]: event.target.value });
+  };
+
+  const [snack, setSnack] = useState(false);
+  const [snackMsg, setSnackMsg] = useState("");
+
+  const { oldTitle, oldTag, oldNote } = values;
+
+  const onSubmit = async (e) => {
+    if (oldTitle === "") {
+      setSnackMsg("No Title, Note not saved");
+      handleClickSnack();
+      return;
+    }
+    if (oldNote === "") {
+      setSnackMsg("Nothing to Save");
+      handleClickSnack();
+      return;
+    }
+    e.preventDefault();
+    // Updating by creating a reference to the doc
+
+    const noteRef = doc(db, "Notes", id);
+
+    await updateDoc(noteRef, {
+      title: oldTitle,
+      tag: oldTag,
+      note: oldNote,
+      timeStamp: serverTimestamp(),
+    })
+      .then(() => {
+        setSnackMsg("Note Saved");
+        handleClickSnack();
+      })
+      .catch(() => {
+        setSnackMsg("Note not saved");
+        handleClickSnack();
+      });
+  };
+
+  const handleClickSnack = () => {
+    setSnack(true);
+  };
+
+  const handleCloseSnack = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnack(false);
+  };
+
+  const action = (
+    <React.Fragment>
+      <IconButton
+        size="small"
+        aria-label="close"
+        color="inherit"
+        onClick={handleCloseSnack}
+      >
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    </React.Fragment>
+  );
 
   return (
     <>
       <ThemeProvider theme={theme}>
+        <Snackbar
+          open={snack}
+          autoHideDuration={3000}
+          onClose={handleCloseSnack}
+          message={snackMsg}
+          action={action}
+        />
         <Button onClick={handleModal}>
           <Box>
             <Typography variant="h6" color="initial" pt={1} textAlign="center">
@@ -77,15 +163,19 @@ const Note = ({ title, tag, note }) => {
                 type={"text"}
                 variant="filled"
                 size="small"
-                defaultValue={title}
+                // defaultValue={title}
+                value={oldTitle}
                 fullWidth
+                onChange={handleChangeOld("oldTitle")}
               />
               <TextField
                 label="Tag"
                 type={"text"}
                 variant="filled"
                 size="small"
-                defaultValue={tag}
+                // defaultValue={tag}
+                value={oldTag}
+                onChange={handleChangeOld("oldTag")}
                 fullWidth
               />
               <TextField
@@ -94,9 +184,15 @@ const Note = ({ title, tag, note }) => {
                 variant="filled"
                 multiline
                 fullWidth
-                defaultValue={note}
+                // defaultValue={note}
+                value={oldNote}
+                onChange={handleChangeOld("oldNote")}
               />
-              <Button variant="outlined" sx={{ maxWidth: 5 }}>
+              <Button
+                variant="outlined"
+                sx={{ maxWidth: 5 }}
+                onClick={onSubmit}
+              >
                 Save
               </Button>
             </Stack>

@@ -1,18 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { ThemeProvider } from "@emotion/react";
 import {
+  Button,
   Container,
   createTheme,
   Pagination,
   Paper,
   TextField,
   Typography,
+  Box,
+  Stack,
+  IconButton,
+  Snackbar,
 } from "@mui/material";
-import { Box, Stack } from "@mui/system";
 import Note from "./components/Note";
 import { styled } from "@mui/material/styles";
 import Grid from "@mui/material/Unstable_Grid2";
-import data from "./components/fakeData.json";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "./components/firebase";
+import CloseIcon from "@mui/icons-material/Close";
+import { v4 as uuidv4 } from "uuid";
 
 const Dashboard = () => {
   const theme = createTheme({
@@ -36,16 +50,24 @@ const Dashboard = () => {
   const [slicedNotes, setSlicedNotes] = useState([]);
   const [page, setPage] = useState(1);
 
+  const [snack, setSnack] = useState(false);
+  const [snackMsg, setSnackMsg] = useState("");
+
   const handleChange = (event, value) => {
     setPage(value);
   };
 
-  const getNotes = () => {
-    setNotes(data);
-  };
-
   useEffect(() => {
-    getNotes();
+    const q = query(collection(db, "Notes"), orderBy("timeStamp", "desc"));
+    getDocs(q).then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        let result = doc.data();
+        // console.log(doc.id);
+        result["id"] = doc.id;
+        // console.log(result);
+        setNotes((prev) => [...prev, result]);
+      });
+    });
   }, []);
 
   useEffect(() => {
@@ -57,9 +79,83 @@ const Dashboard = () => {
     pageChange();
   }, [notes, page]);
 
+  const [values, setValues] = useState({
+    newTitle: "",
+    newTag: "",
+    newNote: "",
+  });
+
+  const { newTitle, newTag, newNote } = values;
+
+  const onSubmit = async (e) => {
+    if (newTitle === "") {
+      setSnackMsg("No Title, Note not saved");
+      handleClickSnack();
+      return;
+    }
+    if (newNote === "") {
+      setSnackMsg("Nothing to Save");
+      handleClickSnack();
+      return;
+    }
+    e.preventDefault();
+    try {
+      const docRef = await addDoc(collection(db, "Notes"), {
+        title: newTitle,
+        tag: newTag,
+        note: newNote,
+        timeStamp: serverTimestamp(),
+        id: uuidv4(),
+      });
+      if (docRef) {
+        setSnackMsg("Note Saved");
+        handleClickSnack();
+        setValues({ newTitle: "", newTag: "", newNote: "" });
+      }
+    } catch (e) {
+      setSnackMsg("Note not saved");
+      handleClickSnack();
+    }
+  };
+
+  const handleChangeNew = (name) => (event) => {
+    setValues({ ...values, [name]: event.target.value });
+  };
+
+  const handleClickSnack = () => {
+    setSnack(true);
+  };
+
+  const handleCloseSnack = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnack(false);
+  };
+
+  const action = (
+    <React.Fragment>
+      <IconButton
+        size="small"
+        aria-label="close"
+        color="inherit"
+        onClick={handleCloseSnack}
+      >
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    </React.Fragment>
+  );
+
   return (
     <>
       <ThemeProvider theme={theme}>
+        <Snackbar
+          open={snack}
+          autoHideDuration={3000}
+          onClose={handleCloseSnack}
+          message={snackMsg}
+          action={action}
+        />
         <Container
           maxWidth="sm"
           sx={{
@@ -81,26 +177,43 @@ const Dashboard = () => {
                 mx: "auto",
               }}
             >
-              <Stack spacing={3} sx={{ mx: 1 }}>
+              <Stack spacing={3} sx={{ mx: 1, alignItems: "center" }}>
                 <TextField
                   label="Title"
                   type={"text"}
                   variant="filled"
                   size="small"
+                  value={newTitle}
+                  fullWidth
+                  onChange={handleChangeNew("newTitle")}
                 />
                 <TextField
                   label="Tag"
                   type={"text"}
                   variant="filled"
                   size="small"
+                  value={newTag}
+                  fullWidth
+                  onChange={handleChangeNew("newTag")}
                 />
                 <TextField
                   label="Note"
                   type={"text"}
                   variant="filled"
+                  value={newNote}
                   multiline
                   fullWidth
+                  onChange={handleChangeNew("newNote")}
                 />
+                <Button
+                  variant="outlined"
+                  sx={{
+                    maxWidth: 100,
+                  }}
+                  onClick={onSubmit}
+                >
+                  Create
+                </Button>
               </Stack>
             </Box>
           </Paper>
@@ -138,7 +251,12 @@ const Dashboard = () => {
                 return (
                   <Grid xs={4} key={index}>
                     <Item>
-                      <Note title={note.name} tag={note.id} note={note.body} />
+                      <Note
+                        title={note.title}
+                        tag={note.tag}
+                        note={note.note}
+                        id={note.id}
+                      />
                     </Item>
                   </Grid>
                 );
