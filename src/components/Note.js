@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { ThemeProvider } from "@emotion/react";
 import {
   Box,
@@ -8,9 +9,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React from "react";
 
-const Note = () => {
+const Note = ({ title, tag, note }) => {
   const theme = createTheme({
     typography: {
       fontFamily: ["Inter", "sans-serif"].join(","),
@@ -37,17 +37,18 @@ const Note = () => {
     p: 4,
   };
 
-  const [open, setOpen] = React.useState(false);
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const [open, setOpen] = useState(false);
+  const handleModal = () => {
+    setOpen(!open);
+  };
 
   return (
     <>
       <ThemeProvider theme={theme}>
-        <Button onClick={handleOpen}>
+        <Button onClick={handleModal}>
           <Box>
             <Typography variant="h6" color="initial" pt={1} textAlign="center">
-              Title
+              {title}
             </Typography>
             <Typography
               variant="subtitle1"
@@ -55,7 +56,7 @@ const Note = () => {
               textAlign="left"
               px={2}
             >
-              Tag
+              {tag}
             </Typography>
             <Typography
               variant="body2"
@@ -63,28 +64,29 @@ const Note = () => {
               textAlign={"justify"}
               p={2}
             >
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Commodi
-              officia iure nemo, corporis quasi id veniam deleniti possimus
-              maiores neque repudiandae vero unde explicabo sequi eos mollitia
-              doloribus? Obcaecati, modi?
+              {note}
             </Typography>
           </Box>
         </Button>
         {/* Modal */}
-        <Modal open={open} onClose={handleClose}>
+        <Modal open={open} onClose={handleModal}>
           <Box sx={style}>
-            <Stack spacing={3} sx={{ mx: 1 }}>
+            <Stack spacing={3} sx={{ mx: 1, alignItems: "center" }}>
               <TextField
                 label="Title"
                 type={"text"}
                 variant="filled"
                 size="small"
+                defaultValue={title}
+                fullWidth
               />
               <TextField
                 label="Tag"
                 type={"text"}
                 variant="filled"
                 size="small"
+                defaultValue={tag}
+                fullWidth
               />
               <TextField
                 label="Note"
@@ -92,7 +94,11 @@ const Note = () => {
                 variant="filled"
                 multiline
                 fullWidth
+                defaultValue={note}
               />
+              <Button variant="outlined" sx={{ maxWidth: 5 }}>
+                Save
+              </Button>
             </Stack>
           </Box>
         </Modal>

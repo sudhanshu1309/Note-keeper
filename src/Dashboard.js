@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { ThemeProvider } from "@emotion/react";
 import {
   Container,
@@ -8,10 +9,10 @@ import {
   Typography,
 } from "@mui/material";
 import { Box, Stack } from "@mui/system";
-import React from "react";
 import Note from "./components/Note";
 import { styled } from "@mui/material/styles";
 import Grid from "@mui/material/Unstable_Grid2";
+import data from "./components/fakeData.json";
 
 const Dashboard = () => {
   const theme = createTheme({
@@ -27,10 +28,34 @@ const Dashboard = () => {
   });
 
   const Item = styled(Paper)(({ theme }) => ({
-    // backgroundColor: theme.palette.mode === "dark" ? "#1A2027" : "#fff",
     ...theme.typography.body2,
     padding: theme.spacing(1),
   }));
+
+  const [notes, setNotes] = useState([]);
+  const [slicedNotes, setSlicedNotes] = useState([]);
+  const [page, setPage] = useState(1);
+
+  const handleChange = (event, value) => {
+    setPage(value);
+  };
+
+  const getNotes = () => {
+    setNotes(data);
+  };
+
+  useEffect(() => {
+    getNotes();
+  }, []);
+
+  useEffect(() => {
+    const pageChange = () => {
+      let lastIndex = page * 6;
+      let firstIndex = lastIndex - 6;
+      setSlicedNotes(notes.slice(firstIndex, lastIndex));
+    };
+    pageChange();
+  }, [notes, page]);
 
   return (
     <>
@@ -109,81 +134,15 @@ const Dashboard = () => {
               columns={{ xs: 4, sm: 8, md: 12 }}
               justifyContent="center"
             >
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
-              <Grid xs={4}>
-                <Item>
-                  <Note />
-                </Item>
-              </Grid>
+              {slicedNotes.map((note, index) => {
+                return (
+                  <Grid xs={4} key={index}>
+                    <Item>
+                      <Note title={note.name} tag={note.id} note={note.body} />
+                    </Item>
+                  </Grid>
+                );
+              })}
             </Grid>
             <Box
               sx={{
@@ -192,7 +151,13 @@ const Dashboard = () => {
                 py: 3,
               }}
             >
-              <Pagination count={11} color="primary" size="small" />
+              <Pagination
+                count={Math.ceil(notes.length / 6)}
+                color="primary"
+                size="small"
+                onChange={handleChange}
+                page={page}
+              />
             </Box>
           </Paper>
         </Container>
